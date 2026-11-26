@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi-Demand Issue Print Slip — S@ju Automations</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 14px;
+      font-family: system-ui, -apple-system, "Segoe UI", Arial, "Noto Sans Bengali", sans-serif;
+      background: #f1f5f9;
+      color: #0f172a;
+      font-size: 12px;
+    }
+    .toolbar {
+      max-width: 780px;
+      margin: 0 auto 12px;
+      background: #14305a;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .toolbar-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .toolbar h1 { margin: 0; font-size: 15px; }
+    .pill {
+      background: rgba(255,255,255,0.16);
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+    .dot.err { background: #f87171; }
+    .toolbar-actions { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+    .btn {
+      border: none;
+      border-radius: 6px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-print { background: #16a34a; color: #fff; }
+    .btn-clear { background: #dc2626; color: #fff; }
+    .btn-user { background: #0284c7; color: #fff; padding: 5px 10px; font-size: 11.5px; }
+    .btn:hover { filter: brightness(1.08); }
+    .size-sel {
+      padding: 5px 7px;
+      border-radius: 5px;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: #0f2547;
+      color: #fff;
+      font-size: 11.5px;
+    }
+    .user-box {
+      max-width: 780px;
+      margin: 0 auto 12px;
+      background: #fff;
+      border: 2px solid #0284c7;
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      box-shadow: 0 2px 8px rgba(2,132,199,0.12);
+    }
+    .user-box input {
+      padding: 7px 10px;
+      border: 1px solid #94a3b8;
+      border-radius: 6px;
+      font-size: 13px;
+      min-width: 220px;
+      font-weight: 600;
+    }
+    .sheet {
+      max-width: 780px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 10px 12px;
+      border-radius: 6px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+      font-size: var(--slip-font, 9.5px);
+      line-height: 1.25;
+    }
+    .sheet-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      border-bottom: 1.5px solid #0f172a;
+      padding-bottom: 4px;
+      margin-bottom: 6px;
+    }
+    .sheet-header strong { font-size: 1.15em; }
+    .demand-block {
+      margin-bottom: 6px;
+      border: 1px solid #94a3b8;
+      border-radius: 3px;
+      overflow: hidden;
+      page-break-inside: avoid;
+    }
+    .demand-head {
+      background: #e2e8f0;
+      padding: 2px 6px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #94a3b8;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .demand-meta { display: flex; gap: 10px; flex-wrap: wrap; }
+    .rm-btn {
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fca5a5;
+      border-radius: 3px;
+      padding: 0 5px;
+      font-size: 9px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 1em;
+    }
+    th, td {
+      border-bottom: 1px solid #cbd5e1;
+      border-right: 1px solid #e2e8f0;
+      padding: 2px 5px;
+      text-align: left;
+    }
+    th:last-child, td:last-child { border-right: none; }
+    tr:last-child td { border-bottom: none; }
+    th {
+      background: #f8fafc;
+      font-weight: 700;
+      color: #334155;
+    }
+    .num { text-align: right; font-weight: 700; white-space: nowrap; }
+    .sl { width: 26px; text-align: center; }
+    .empty {
+      text-align: center;
+      padding: 28px 12px;
+      color: #64748b;
+      font-size: 12.5px;
+    }
+
+    .chk-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+    .chk-wrap input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+      accent-color: #16a34a;
+      margin: 0;
+    }
+    .demand-block.unselected {
+      opacity: 0.45;
+      border-style: dashed;
+    }
+    .sel-all-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255,255,255,0.16);
+      padding: 5px 9px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .sel-all-wrap input { margin: 0; cursor: pointer; accent-color: #4ade80; }
+
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 6mm;
+      }
+      body {
+        background: #fff;
+        padding: 0;
+        margin: 0;
+      }
+      .toolbar, .user-box, .rm-btn, .demand-chk { display: none !important; }
+      .demand-block.unselected { display: none !important; }
+      .sheet {
+        max-width: 100%;
+        width: 100%;
+        box-shadow: none;
+        border-radius: 0;
+        padding: 0;
+        margin: 0;
+      }
+      .demand-head {
+        background: #e2e8f0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      th {
+        background: #f8fafc !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <h1>🖨 Multi-Demand Print Slip</h1>
+      <span class="pill"><span id="connDot" class="dot"></span><span id="connText">Connecting...</span></span>
+      <span class="pill" id="summaryPill">0 Demands · 0 Items</span>
+      <span class="pill" id="rackPill">Rack: Loading...</span>
+      <span class="pill" id="lockedUserPill" style="background:#0284c7;">👤 User: Not Set</span>
+    </div>
+    <div class="toolbar-actions">
+      <label class="sel-all-wrap"><input type="checkbox" id="chkAll" checked> সব সিলেক্ট</label>
+      <button class="btn btn-user" id="btnChangeUser" title="ইউজারের নাম পরিবর্তন করুন">👤 ইউজার সেট/পরিবর্তন</button>
+      <select id="fontSel" class="size-sel" title="Print Font Size">
+        <option value="8.5px">Font: 8.5px (Extra Small)</option>
+        <option value="9.5px" selected>Font: 9.5px (Compact)</option>
+        <option value="10.5px">Font: 10.5px (Medium)</option>
+      </select>
+      <button class="btn btn-print" id="btnPrint">🖨 প্রিন্ট করুন (Print)</button>
+      <button class="btn btn-clear" id="btnClear">🗑 আমার লিস্ট ক্লিয়ার</button>
+    </div>
+  </div>
+
+  <div id="userSetupBox" class="user-box" style="display:none;">
+    <div>
+      <strong style="font-size:13.5px;color:#0f172a;">👤 এই কম্পিউটারের ইউজার নাম ফিক্স করুন (Operator Name)</strong>
+      <div style="color:#475569;font-size:11.5px;margin-top:2px;">এক্সটেনশনে যে নাম সেভ করা আছে হুবহু সেই নামটি দিন — তাহলে শুধু আপনার ইস্যু করা ডাটাই এখানে দেখাবে।</div>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <input type="text" id="userNameInput" placeholder="যেমন: Saju">
+      <button class="btn btn-print" id="btnSaveUser">✔ ফিক্স করুন</button>
+    </div>
+  </div>
+
+  <div id="rackErrBanner" style="display:none;max-width:780px;margin:0 auto 10px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:9px 12px;border-radius:6px;font-size:12px;"></div>
+  <div class="sheet" id="sheet">
+    <div class="sheet-header">
+      <strong>GMS Composite Knitting Ind. Ltd. — General Issue Slip</strong>
+      <span id="printMeta">Total: 0 Demands</span>
+    </div>
+    <div id="content">
+      <div class="empty">প্রথমে উপরে আপনার ইউজার নাম ফিক্স করুন...</div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBRi5_qL6hnSG979PKUB5D2dfrBD42sNpM",
+      authDomain: "accessories-inventory.firebaseapp.com",
+      projectId: "accessories-inventory",
+      storageBucket: "accessories-inventory.firebasestorage.app",
+      messagingSenderId: "667991805837",
+      appId: "1:667991805837:web:036a5224b4d44fb1a3f7c4",
+      measurementId: "G-SMK74B6LC4",
+      databaseURL: "https://accessories-inventory-default-rtdb.firebaseio.com"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const queueRef = ref(db, 'print_queue');
+
+    // Second Firebase App (genaralmcd) for Firestore rackMappings
+    const rackFirebaseConfig = {
+      apiKey: "AIzaSyDHavBhBcUNrF4ygBkS4oe_RBBmM6picDU",
+      authDomain: "genaralmcd.firebaseapp.com",
+      databaseURL: "https://genaralmcd-default-rtdb.firebaseio.com",
+      projectId: "genaralmcd",
+      storageBucket: "genaralmcd.firebasestorage.app",
+      messagingSenderId: "792599541115",
+      appId: "1:792599541115:web:e1594217b3ce6a32cf39de",
+      measurementId: "G-ZP9LJJ7EC2"
+    };
+    const rackApp = initializeApp(rackFirebaseConfig, 'rackApp');
+    const rackDb = getFirestore(rackApp);
+    const rackExactMap = new Map();
+    const rackNormMap = new Map();
+    const rackNameMap = new Map();
+    const rackPill = document.getElementById('rackPill');
+    const rackErrBanner = document.getElementById('rackErrBanner');
+
+    function normCode(s) {
+      return String(s == null ? '' : s).trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    }
+    function normName(s) {
+      return String(s == null ? '' : s).trim().toLowerCase().replace(/\s+/g, ' ');
+    }
+
+    function getRackForItem(code, name) {
+      const raw = String(code == null ? '' : code).trim().toUpperCase();
+      if (raw && raw !== '—') {
+        if (rackExactMap.has(raw)) return rackExactMap.get(raw);
+        const nk = normCode(raw);
+        if (nk && rackNormMap.has(nk)) return rackNormMap.get(nk);
+      }
+      const nn = normName(name);
+      if (nn && rackNameMap.has(nn)) return rackNameMap.get(nn);
+      return '—';
+    }
+
+    const STATIC_RACK_MAP = {"ELE005": "R02-L02", "PRI007": "R02-S25", "PRI028": "R02-S25", "PRI008": "R02-S29", "PRI029": "R02-S29", "PRI030": "R02-S29", "PRI031": "R02-S29", "PRI009": "R02-S11", "PRI455": "R02-S11", "PRI747": "R02-S11", "PRI012": "R02-S23", "PRI086": "R02-S23", "PRI088": "R02-S23", "PRI137": "R02-S23", "PRI420": "R02-S23", "PRI437": "R02-S23", "PRI014": "R02-S28", "PRI154": "R02-S28", "PRI168": "R02-S28", "PRI296": "R02-S28", "PRI335": "R02-S28", "PRI397": "R02-S28", "PRI015": "R02-S31", "PRI039": "R02-S31", "PRI155": "R02-S31", "PRI163": "R02-S31", "PRI194": "R02-S31", "PRI198": "R02-S31", "PRI016": "R02-S06", "PRI1021": "R02-S06", "PRI1048": "R02-S06", "PRI1049": "R02-S06", "PRI1050": "R02-S06", "PRI243": "R02-S06", "PRI445": "R02-S06", "PRI997": "R02-S06", "PRI020": "R02-S24", "PRI027": "R02-S24", "PRI211": "R02-S24", "PRI240": "R02-S24", "PRI244": "R02-S24", "PRI023": "R02-S21", "PRI032": "R02-S07", "PRI1012": "R02-S07", "PRI1026": "R02-S07", "PRI1027": "R02-S07", "PRI931": "R02-S07", "PRI938": "R02-S07", "PRI038": "R02-S26", "PRI099": "R02-S26", "PRI105": "R02-S26", "PRI147": "R02-S26", "PRI158": "R02-S26", "PRI193": "R02-S26", "PRI400": "R02-S26", "PRI042": "R02-S13", "PRI047": "R02-S13", "PRI048": "R02-S13", "PRI056": "R02-S20", "PRI224": "R02-S20", "PRI261": "R02-S20", "PRI280": "R02-S20", "PRI282": "R02-S20", "PRI295": "R02-S20", "PRI061": "R02-S14", "PRI209": "R02-S14", "PRI221": "R02-S14", "PRI289": "R02-S14", "PRI412": "R02-S14", "PRI431": "R02-S14", "PRI731": "R02-S14", "PRI080": "R02-S18", "PRI083": "R02-S18", "PRI214": "R02-S18", "PRI246": "R02-S18", "PRI310": "R02-S18", "PRI320": "R02-S18", "PRI082": "R02-S17", "PRI286": "R02-S17", "PRI085": "R02-S15", "PRI1003": "R02-S15", "PRI165": "R02-S15", "PRI183": "R02-S15", "PRI271": "R02-S15", "PRI274": "R02-S15", "PRI305": "R02-S15", "PRI095": "R02-S04", "PRI1039": "R02-S04", "PRI181": "R02-S04", "PRI223": "R02-S04", "PRI242": "R02-S04", "PRI426": "R02-S04", "PRI097": "R02-S19", "PRI111": "R02-S19", "PRI150": "R02-S19", "PRI151": "R02-S19", "PRI186": "R02-S19", "PRI332": "R02-S19", "PRI1040": "R02-S10", "PRI1043": "R02-S10", "PRI1044": "R02-S10", "PRI161": "R02-S10", "PRI216": "R02-S10", "PRI382": "R02-S10", "PRI388": "R02-S10", "PRI859": "R02-S10", "PRI990": "R02-S10", "PRI106": "R02-S30", "PRI141": "R02-S30", "PRI159": "R02-S30", "PRI370": "R02-S30", "PRI398": "R02-S30", "PRI401": "R02-S30", "PRI113": "R02-S03", "PRI138": "R02-S03", "PRI257": "R02-S03", "PRI413": "R02-S03", "PRI442": "R02-S03", "PRI959": "R02-S03", "PRI117": "R02-S27", "PRI162": "R02-S27", "PRI173": "R02-S27", "PRI184": "R02-S27", "PRI197": "R02-S27", "PRI439": "R02-S27", "PRI121": "R02-S32", "PRI125": "R02-S32", "PRI127": "R02-S32", "PRI174": "R02-S32", "PRI188": "R02-S32", "PRI247": "R02-S08", "PRI381": "R02-S08", "PRI457": "R02-S08", "PRI256": "R02-S02", "PRI292": "R02-S02", "PRI309": "R02-S02", "PRI406": "R02-S02", "PRI748": "R02-S02", "PRI749": "R02-S02", "PRI750": "R02-S02", "PRI267": "R02-S12", "PRI270": "R02-S12", "PRI302": "R02-S12", "PRI312": "R02-S12", "PRI319": "R02-S12", "PRI325": "R02-S011", "PRI339": "R02-S011", "PRI734": "R02-S22", "PRI924": "R02-S22", "PRI925": "R02-S22", "PRI926": "R02-S22", "PRI927": "R02-S22", "PRI928": "R02-S22", "MIS137": "R06-S01", "STA001": "R06-S01", "STA041": "R06-S01", "MIS725": "R06-S02", "STA029": "R06-S02", "STA161": "R06-S02", "STA038": "R06-S03", "STA096": "R06-S03", "STA179": "R06-S03", "STA064": "R06-S08", "STA065": "R06-S08", "STA066": "R06-S08", "STA097": "R06-S06", "STA115": "R06-S06", "PRI001": "R03-S16", "PRI132": "R03-S16", "PRI252": "R03-S16", "PRI865": "R03-S16", "PRI005": "R03-S30", "PRI036": "R03-S30", "PRI316": "R03-S30", "PRI733": "R03-S30", "PRI010": "R03-S03", "PRI013": "R03-S03", "PRI079": "R03-S03", "PRI231": "R03-S03", "PRI239": "R03-S03", "PRI022": "R03-S10", "PRI130": "R03-S10", "PRI160": "R03-S10", "PRI229": "R03-S10", "PRI248": "R03-S10", "PRI399": "R03-S10", "PRI024": "R03-S06", "PRI115": "R03-S06", "PRI116": "R03-S06", "PRI134": "R03-S06", "PRI393": "R03-S06", "PRI402": "R03-S06", "PRI025": "R03-S22", "PRI026": "R03-S22", "PRI140": "R03-S22", "PRI142": "R03-S22", "PRI307": "R03-S22", "PRI034": "R03-S11", "PRI066": "R03-S11", "PRI226": "R03-S11", "PRI291": "R03-S11", "PRI934": "R03-S11", "PRI035": "R03-S28", "PRI060": "R03-S31", "PRI315": "R03-S31", "PRI065": "R03-S27", "PRI148": "R03-S27", "PRI251": "R03-S27", "PRI421": "R03-S27", "PRI078": "R03-S24", "PRI205": "R03-S24", "PRI206": "R03-S24", "PRI225": "R03-S24", "PRI081": "R03-S18", "PRI238": "R03-S18", "PRI918": "R03-S18", "PRI920": "R03-S18", "PRI922": "R03-S18", "PRI923": "R03-S18", "PRI087": "R03-S23", "PRI090": "R03-S23", "PRI120": "R03-S23", "PRI124": "R03-S23", "PRI126": "R03-S23", "PRI249": "R03-S23", "PRI096": "R03-S07", "PRI1083": "R03-S07", "PRI135": "R03-S07", "PRI192": "R03-S07", "PRI932": "R03-S07", "PRI1028": "R03-S19", "PRI1029": "R03-S19", "PRI1030": "R03-S19", "PRI1031": "R03-S19", "PRI827": "R03-S19", "PRI919": "R03-S19", "PRI110": "R03-S04", "PRI112": "R03-S04", "PRI277": "R03-S04", "PRI343": "R03-S04", "PRI447": "R03-S04", "PRI118": "R03-S26", "PRI143": "R03-S26", "PRI290": "R03-S26", "PRI297": "R03-S26", "PRI153": "R03-S15", "PRI228": "R03-S15", "PRI245": "R03-S15", "PRI396": "R03-S15", "PRI428": "R03-S15", "PRI157": "R03-S18-2", "PRI175": "R03-S18-2", "PRI182": "R03-S18-2", "PRI278": "R03-S18-2", "PRI279": "R03-S18-2", "PRI164": "R03-S20", "PRI171": "R03-S20", "PRI172": "R03-S20", "PRI178": "R03-S20", "PRI253": "R03-S20", "PRI448": "R03-S20", "PRI176": "R03-S02", "PRI177": "R03-S02", "PRI196": "R03-S02", "PRI441": "R03-S02", "PRI443": "R03-S02", "PRI233": "R03-S14", "PRI234": "R03-S14", "PRI236": "R03-S14", "PRI241": "R03-S14", "PRI341": "R03-S14", "PRI347": "R03-S12", "PRI348": "R03-S12", "PRI352": "R03-S12", "PRI366": "R03-S12", "PRI913": "R03-S12", "PRI916": "R03-S12", "PRI1025": "R01-S08", "PRI1046": "R01-S08", "PRI1085": "R01-S08", "PRI1088": "R01-S08", "PRI272": "R01-S06", "PRI937": "R01-S05", "STA002": "R01-L01", "STA003": "R01-L02", "STA004": "R01-L03", "STA010": "R04-S14", "STA057": "GR-1"};
+
+    // Declare state arrays before rebuildRackMaps() is invoked
+    let allSlips = [];
+    let currentSlips = [];
+    const unselectedIds = new Set();
+
+    const colData = { rackMappings: [], logic_erp_rack_mappings: [] };
+    function rebuildRackMaps() {
+      rackExactMap.clear();
+      rackNormMap.clear();
+      rackNameMap.clear();
+      const exactTemp = new Map();
+      const normTemp = new Map();
+      const nameTemp = new Map();
+      for (const [k, r] of Object.entries(STATIC_RACK_MAP)) {
+        const codeRaw = k.trim().toUpperCase();
+        if (!exactTemp.has(codeRaw)) exactTemp.set(codeRaw, new Set());
+        r.split(',').map((x) => x.trim()).filter(Boolean).forEach((x) => exactTemp.get(codeRaw).add(x));
+        const nk = normCode(codeRaw);
+        if (nk) {
+          if (!normTemp.has(nk)) normTemp.set(nk, new Set());
+          r.split(',').map((x) => x.trim()).filter(Boolean).forEach((x) => normTemp.get(nk).add(x));
+        }
+      }
+      const allDocs = colData.rackMappings.concat(colData.logic_erp_rack_mappings);
+      for (const d of allDocs) {
+        const codeRaw = String(d.itemCode || d.code || d.item_code || '').trim().toUpperCase();
+        const nameRaw = normName(d.itemName || d.item_name || d.description || '');
+        const rack = String(d.rackNo || d.rack || d.rackLocation || d.location || '').trim();
+        if (!rack) continue;
+        if (codeRaw) {
+          if (!exactTemp.has(codeRaw)) exactTemp.set(codeRaw, new Set());
+          exactTemp.get(codeRaw).add(rack);
+          const nk = normCode(codeRaw);
+          if (nk) {
+            if (!normTemp.has(nk)) normTemp.set(nk, new Set());
+            normTemp.get(nk).add(rack);
+          }
+        }
+        if (nameRaw) {
+          if (!nameTemp.has(nameRaw)) nameTemp.set(nameRaw, new Set());
+          nameTemp.get(nameRaw).add(rack);
+        }
+      }
+      exactTemp.forEach((set, k) => rackExactMap.set(k, Array.from(set).join(', ')));
+      normTemp.forEach((set, k) => rackNormMap.set(k, Array.from(set).join(', ')));
+      nameTemp.forEach((set, k) => rackNameMap.set(k, Array.from(set).join(', ')));
+      rackPill.textContent = 'Racks: ' + rackExactMap.size;
+      rackPill.style.background = '';
+      rackErrBanner.style.display = 'none';
+      if (currentSlips.length) renderSlips();
+    }
+
+    rebuildRackMaps();
+
+    ['rackMappings', 'logic_erp_rack_mappings'].forEach((colName) => {
+      onSnapshot(collection(rackDb, colName), (snap) => {
+        const arr = [];
+        snap.forEach((doc) => arr.push(doc.data() || {}));
+        colData[colName] = arr;
+        rebuildRackMaps();
+      }, (err) => {
+        if (rackExactMap.size === 0 && Object.keys(STATIC_RACK_MAP).length === 0) {
+          rackPill.textContent = 'Rack Err: ' + (err.code || err.message);
+          rackPill.style.background = '#dc2626';
+          rackErrBanner.style.display = 'block';
+          rackErrBanner.textContent = '⚠ genaralmcd Firestore থেকে Rack লোড করা যাচ্ছে না (' + (err.code || err.message) + ')।';
+        }
+      });
+    });
+
+    const content = document.getElementById('content');
+    const summaryPill = document.getElementById('summaryPill');
+    const printMeta = document.getElementById('printMeta');
+    const connDot = document.getElementById('connDot');
+    const connText = document.getElementById('connText');
+    const sheet = document.getElementById('sheet');
+    const fontSel = document.getElementById('fontSel');
+    const chkAll = document.getElementById('chkAll');
+
+    // Fixed PC User Lock (localStorage + optional ?user=Name URL param)
+    const USER_STORAGE_KEY = 'saju_locked_print_user';
+    const lockedUserPill = document.getElementById('lockedUserPill');
+    const userSetupBox = document.getElementById('userSetupBox');
+    const userNameInput = document.getElementById('userNameInput');
+    const btnSaveUser = document.getElementById('btnSaveUser');
+    const btnChangeUser = document.getElementById('btnChangeUser');
+
+    const urlUser = new URLSearchParams(window.location.search).get('user');
+    if (urlUser && urlUser.trim()) {
+      localStorage.setItem(USER_STORAGE_KEY, urlUser.trim());
+    }
+    let lockedUser = (localStorage.getItem(USER_STORAGE_KEY) || '').trim();
+
+    function syncUserUI(forceOpen = false) {
+      if (lockedUser) {
+        lockedUserPill.textContent = '👤 User: ' + lockedUser;
+        lockedUserPill.style.background = '#0284c7';
+        userSetupBox.style.display = forceOpen ? 'flex' : 'none';
+      } else {
+        lockedUserPill.textContent = '👤 User: Not Set';
+        lockedUserPill.style.background = '#dc2626';
+        userSetupBox.style.display = 'flex';
+      }
+      userNameInput.value = lockedUser;
+    }
+
+    btnChangeUser.addEventListener('click', () => {
+      const isOpen = userSetupBox.style.display === 'flex';
+      syncUserUI(!isOpen);
+      if (!isOpen) userNameInput.focus();
+    });
+
+    function saveLockedUser() {
+      const val = userNameInput.value.trim();
+      if (!val) {
+        rackErrBanner.style.display = 'block';
+        rackErrBanner.textContent = '⚠ অনুগ্রহ করে আপনার ইউজার নাম লিখুন।';
+        userNameInput.focus();
+        return;
+      }
+      rackErrBanner.style.display = 'none';
+      lockedUser = val;
+      localStorage.setItem(USER_STORAGE_KEY, lockedUser);
+      syncUserUI(false);
+      applyFilter();
+    }
+
+    btnSaveUser.addEventListener('click', saveLockedUser);
+    userNameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') saveLockedUser();
+    });
+
+    syncUserUI(false);
+
+    fontSel.addEventListener('change', () => {
+      sheet.style.setProperty('--slip-font', fontSel.value);
+    });
+
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function applyFilter() {
+      if (!lockedUser) {
+        currentSlips = [];
+      } else {
+        const target = lockedUser.toLowerCase();
+        currentSlips = allSlips.filter((d) => String(d.issuedBy || '').trim().toLowerCase() === target);
+      }
+      renderSlips();
+    }
+
+    function updateCounters() {
+      const selected = currentSlips.filter((d) => !unselectedIds.has(d.id));
+      const selItems = selected.reduce((s, d) => s + (Array.isArray(d.items) ? d.items.length : 0), 0);
+      summaryPill.textContent = selected.length + '/' + currentSlips.length + ' Selected · ' + selItems + ' Items';
+      printMeta.textContent = (lockedUser ? 'User: ' + lockedUser + ' | ' : '') + 'Demands: ' + selected.length + ' | Items: ' + selItems + ' | ' + new Date().toLocaleDateString();
+      chkAll.checked = currentSlips.length > 0 && selected.length === currentSlips.length;
+      chkAll.indeterminate = selected.length > 0 && selected.length < currentSlips.length;
+    }
+
+    function renderSlips() {
+      updateCounters();
+      if (!lockedUser) {
+        content.innerHTML = '<div class="empty">প্রথমে উপরে <strong>👤 এই কম্পিউটারের ইউজার নাম ফিক্স করুন</strong> বক্সে আপনার নাম লিখে ফিক্স করুন।</div>';
+        return;
+      }
+      if (!currentSlips.length) {
+        content.innerHTML = '<div class="empty"><strong>' + esc(lockedUser) + '</strong>-এর নামে কোনো ডিমান্ড জমা নেই। ERP-তে ডিমান্ড Save করলে এখানে জমা হবে।</div>';
+        return;
+      }
+
+      content.innerHTML = currentSlips.map((d, idx) => {
+        const isChecked = !unselectedIds.has(d.id);
+        const items = Array.isArray(d.items) ? d.items : [];
+        const rowsHtml = items.map((it, i) => `
+          <tr>
+            <td class="sl">${i + 1}</td>
+            <td>${esc(it.itemCode || '—')}</td>
+            <td style="font-weight:700;color:#0f172a;white-space:nowrap;">${esc(getRackForItem(it.itemCode, it.itemName))}</td>
+            <td>${esc(it.itemName || '')}</td>
+            <td class="num">${esc(it.issueQty)}</td>
+            <td>${esc(it.uom || '')}</td>
+          </tr>
+        `).join('');
+
+        return `
+          <div class="demand-block${isChecked ? '' : ' unselected'}" data-block-id="${esc(d.id)}">
+            <div class="demand-head">
+              <div class="demand-meta">
+                <label class="chk-wrap" title="প্রিন্টের জন্য সিলেক্ট করুন">
+                  <input type="checkbox" class="demand-chk" data-id="${esc(d.id)}" ${isChecked ? 'checked' : ''}>
+                  <span>#${idx + 1} Demand: ${esc(d.demandNo || 'N/A')}</span>
+                </label>
+                ${d.issueId ? `<span>Issue ID: ${esc(d.issueId)}</span>` : ''}
+                <span>Dept: ${esc(d.department || '—')}</span>
+                ${d.section ? `<span>Sec: ${esc(d.section)}</span>` : ''}
+                <span>Date: ${esc(d.issueDate || '—')}</span>
+                <span style="color:#14305a;background:#dbeafe;padding:0 5px;border-radius:3px;">Issued by: ${esc(d.issuedBy || '—')}</span>
+              </div>
+              <button class="rm-btn" data-id="${esc(d.id)}" title="Remove this demand">×</button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th class="sl">SL</th>
+                  <th style="width:82px;">Item Code</th>
+                  <th style="width:68px;">Rack</th>
+                  <th>Item Description</th>
+                  <th class="num" style="width:55px;">Qty</th>
+                  <th style="width:45px;">UOM</th>
+                </tr>
+              </thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+          </div>
+        `;
+      }).join('');
+
+      content.querySelectorAll('.demand-chk').forEach((cb) => {
+        cb.addEventListener('change', () => {
+          const id = cb.dataset.id;
+          if (cb.checked) unselectedIds.delete(id);
+          else unselectedIds.add(id);
+          const blk = cb.closest('.demand-block');
+          if (blk) blk.classList.toggle('unselected', !cb.checked);
+          updateCounters();
+        });
+      });
+
+      content.querySelectorAll('.rm-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          try {
+            await remove(ref(db, 'print_queue/' + btn.dataset.id));
+          } catch (e) {
+            rackErrBanner.style.display = 'block';
+            rackErrBanner.textContent = '⚠ Remove failed: ' + e.message;
+          }
+        });
+      });
+    }
+
+    chkAll.addEventListener('change', () => {
+      if (chkAll.checked) unselectedIds.clear();
+      else currentSlips.forEach((d) => unselectedIds.add(d.id));
+      renderSlips();
+    });
+
+    onValue(queueRef, (snap) => {
+      connDot.className = 'dot';
+      connText.textContent = 'Live Ready';
+      const val = snap.val() || {};
+      allSlips = Object.entries(val)
+        .map(([id, d]) => ({ id, ...(d || {}) }))
+        .sort((a, b) => (Number(a.createdAt) || 0) - (Number(b.createdAt) || 0));
+      applyFilter();
+    }, (err) => {
+      connDot.className = 'dot err';
+      connText.textContent = 'Error';
+      content.innerHTML = '<div class="empty" style="color:#dc2626;">Firebase Error: ' + esc(err.message) + '</div>';
+    });
+
+    document.getElementById('btnPrint').addEventListener('click', () => {
+      const selectedCount = currentSlips.filter((d) => !unselectedIds.has(d.id)).length;
+      if (!selectedCount) {
+        rackErrBanner.style.display = 'block';
+        rackErrBanner.textContent = '⚠ প্রিন্ট করার জন্য অন্তত একটি ডিমান্ড টিক দিয়ে সিলেক্ট করুন।';
+        return;
+      }
+      rackErrBanner.style.display = 'none';
+      window.print();
+    });
+
+    let clearConfirmTimer = null;
+    const btnClear = document.getElementById('btnClear');
+    btnClear.addEventListener('click', async () => {
+      if (!lockedUser) {
+        rackErrBanner.style.display = 'block';
+        rackErrBanner.textContent = '⚠ প্রথমে আপনার ইউজার নাম ফিক্স করুন।';
+        syncUserUI(true);
+        return;
+      }
+      if (!currentSlips.length) {
+        rackErrBanner.style.display = 'block';
+        rackErrBanner.textContent = '⚠ আপনার লিস্টে ক্লিয়ার করার মতো কোনো ডিমান্ড নেই।';
+        return;
+      }
+      if (btnClear.dataset.armed !== '1') {
+        btnClear.dataset.armed = '1';
+        btnClear.textContent = '⚠ নিশ্চিত? আবার ক্লিক করুন';
+        clearTimeout(clearConfirmTimer);
+        clearConfirmTimer = setTimeout(() => {
+          btnClear.dataset.armed = '';
+          btnClear.textContent = '🗑 আমার লিস্ট ক্লিয়ার';
+        }, 4000);
+        return;
+      }
+      clearTimeout(clearConfirmTimer);
+      btnClear.dataset.armed = '';
+      btnClear.textContent = '🗑 আমার লিস্ট ক্লিয়ার';
+      try {
+        await Promise.all(currentSlips.map((d) => remove(ref(db, 'print_queue/' + d.id))));
+        rackErrBanner.style.display = 'none';
+      } catch (e) {
+        rackErrBanner.style.display = 'block';
+        rackErrBanner.textContent = '⚠ Clear failed: ' + e.message;
+      }
+    });
+  </script>
+</body>
+</html>
